@@ -15,7 +15,6 @@ import com.google.android.exoplayer2.ExoPlaybackException;
 import com.google.android.exoplayer2.LivePlaybackSpeedControl;
 import com.google.android.exoplayer2.LoadControl;
 import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.Player.PositionInfo;
@@ -272,8 +271,8 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
         if (player.getPlaybackState() == Player.STATE_ENDED) {
             try {
                 if (player.getPlayWhenReady()) {
-                    if (player.hasNextWindow()) {
-                        player.seekToNextWindow();
+                    if (player.hasNext()) {
+                        player.next();
                     } else if (lastPlaylistLength == 0 && player.getMediaItemCount() > 0) {
                         player.seekTo(0, 0L);
                     }
@@ -350,46 +349,6 @@ public class AudioPlayer implements MethodCallHandler, Player.Listener, Metadata
                 playResult = null;
             }
             break;
-        }
-    }
-
-    @Override
-    public void onPlayerError(PlaybackException error) {
-        if (error instanceof ExoPlaybackException) {
-            final ExoPlaybackException exoError = (ExoPlaybackException)error;
-            switch (exoError.type) {
-            case ExoPlaybackException.TYPE_SOURCE:
-                Log.e(TAG, "TYPE_SOURCE: " + exoError.getSourceException().getMessage());
-                break;
-
-            case ExoPlaybackException.TYPE_RENDERER:
-                Log.e(TAG, "TYPE_RENDERER: " + exoError.getRendererException().getMessage());
-                break;
-
-            case ExoPlaybackException.TYPE_UNEXPECTED:
-                Log.e(TAG, "TYPE_UNEXPECTED: " + exoError.getUnexpectedException().getMessage());
-                break;
-
-            default:
-                Log.e(TAG, "default ExoPlaybackException: " + exoError.getUnexpectedException().getMessage());
-            }
-            // TODO: send both errorCode and type
-            sendError(String.valueOf(exoError.type), exoError.getMessage());
-        } else {
-            Log.e(TAG, "default PlaybackException: " + error.getMessage());
-            sendError(String.valueOf(error.errorCode), error.getMessage());
-        }
-        errorCount++;
-        if (player.hasNextWindow() && currentIndex != null && errorCount <= 5) {
-            int nextIndex = currentIndex + 1;
-            Timeline timeline = player.getCurrentTimeline();
-            // This condition is due to: https://github.com/ryanheise/just_audio/pull/310
-            if (nextIndex < timeline.getWindowCount()) {
-                // TODO: pass in initial position here.
-                player.setMediaSource(mediaSource);
-                player.prepare();
-                player.seekTo(nextIndex, 0);
-            }
         }
     }
 
